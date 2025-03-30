@@ -30,6 +30,8 @@ typedef struct {
 }Asiner ;
 
 
+// function divide the given code into tokens for
+// understanding the code given and identify the datatypes
 Asiner getNextToken(const char *code ,int *pos){
     Asiner token;
     token.value[0] = '\0';
@@ -89,6 +91,7 @@ Asiner getNextToken(const char *code ,int *pos){
 
 };
 
+// function to verify correct arrangement or syntax
 int parseAssignment(const char *code){
     int pos = 0;
     Asiner token;
