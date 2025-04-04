@@ -4,9 +4,11 @@
 #include <stdlib.h>
 // determines the data type of values
 
-typedef enum { IDENTIFIER, NUMBER, OPERATOR, ASSIGN, PUNCTUATION, ERROR, END } tokentype;
+typedef enum { IDENTIFIER, KEYWORD, NUMBER, OPERATOR, ASSIGN, PUNCTUATION, ERROR, END } tokentype;
 
 // IDENTIFIER: Variable names like x, sum
+
+// KEYWORD : Predefined variable names
 
 // NUMBER: Numerical values like 10, 5
 
@@ -25,6 +27,8 @@ typedef enum { IDENTIFIER, NUMBER, OPERATOR, ASSIGN, PUNCTUATION, ERROR, END } t
 // const in c is not seen as const in compile time 
 // use #define instead of const 
 
+#define KEYWORD_COUNT 6
+
 typedef struct {
     tokentype type;
     char value[MAX_TOKEN_SIZE];
@@ -40,8 +44,16 @@ typedef struct
 Bag inventory[100]; // Store up to 100 variables
 int itemCount = 0;
 
+const char *keywords[KEYWORD_COUNT] = {"int","float","if","while","return","else"};
 
 
+int isKeyword(const char *str){
+    for (int i = 0; i < KEYWORD_COUNT; i++){
+        if(strcmp(str,keywords[i] == 0))
+            return 1; // its a keyword
+    }
+    return 0; // not a keyword
+}
 // function divide the given code into tokens for
 // understanding the code given and identify the datatypes
 Asiner getNextToken(const char *code ,int *pos){
@@ -56,12 +68,18 @@ Asiner getNextToken(const char *code ,int *pos){
     }
     if(isalpha(code[*pos])){
         int i = 0;
-        while (isalpha(code[*pos])){
+        while (isalnum(code[*pos])){
             token.value[i++] = code[*pos];
             (*pos)++;
         }
         token.value[i] = '\0';
-        token.type = IDENTIFIER;
+
+        //check for keyword
+        if(isKeyword(token.value)){
+            token.type = KEYWORD;
+        }else{
+            token.type = IDENTIFIER;
+        }
         return token;
     }
     if(isdigit(code[*pos])){
@@ -188,11 +206,16 @@ return value;
 int parseAssignment(const char *code,int *pos){
     Asiner token;
 
+    token = getNextToken(code,pos);
+    int isDeclaring =0;
+    if (token.type == KEYWORD){
+        isDeclaring = 1;
+        token = getNextToken(code,pos);
+    }
     //Step 1:  Expect IDENTIFIER (variable name)
     // changed &pos -> pos because pos is a pointer while
     // &pos is an integer value so original value will not be modified
 
-    token = getNextToken(code,pos);
     if(token.type !=IDENTIFIER){
         printf("Syntax Error: Expexted a variable name , but got '%s' \n",token.value);
         return 0; // break cannot be used in if statements
