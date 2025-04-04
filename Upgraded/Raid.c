@@ -34,6 +34,13 @@ typedef struct {
     char value[MAX_TOKEN_SIZE];
 }Asiner ;
 
+//storing datatypes checker
+typedef struct {
+    double value;
+    char type[MAX_TOKEN_SIZE]; // Stores "int" or "float"
+} EvalResult; 
+
+
 // Adding symbol table for variable support in statements
 typedef struct
 {
@@ -99,7 +106,7 @@ Asiner getNextToken(const char *code ,int *pos){
         token.type = NUMBER;
         return token;
     }
-    if(strchr("+*-/%",code[*pos])){
+    if(strchr("+*-/",code[*pos])){
         token.value[0] = code[*pos];
         token.value[1] = '\0';
         token.type = OPERATOR;
@@ -131,19 +138,66 @@ Asiner getNextToken(const char *code ,int *pos){
 
 
 // function for evaluating assignment statements
-double evalExp(const char *code,int *pos){
+EvalResult evalExp(const char *code,int *pos){
     Asiner token; 
+    EvalResult result;
     // Step 3: Expect an Expression (number or number operator number)
     token = getNextToken(code,pos);
-    if(token.type !=NUMBER){
-        printf("Syntax Error: Expexted a number , but got '%s' \n",token.value);
-        return 0; // break cannot be used in if statements
+
+    if (token.type == NUMBER){
+        result.value == atof(token.value);
+        strcpy(result.type,(strchr(token.value,'.')?"float":"int"));
+    }else if (token.type == IDENTIFIER){
+        int found = 0;
+        for (int i=0;i<itemCount;i++){
+            if(strcmp(inventory[i].name,token.value)==0){
+                result.value = inventory[i].value;
+                strcpy(result.type,inventory[i].type);
+                found=1;
+                break;
+            }
+        }
+        if(!found){
+            printf("Error: Undefined variable '%s' \n",token.value);
+            result.value = 0;
+            strcpy(result.type,"unknown");
+        }
+    } else{
+        printf("Syntax Error: Expected a number or variable , but got '%s'\n",token.value);
+        result.value = 0;
+        strcpy(result.type,"error");
     }
+
+    // if(token.type !=NUMBER){
+    //     printf("Syntax Error: Expexted a number , but got '%s' \n",token.value);
+    //     return 0; // break cannot be used in if statements
+    // }
     
     // convert string to float and store it
-    double value = atof(token.value);
+    // double value = atof(token.value);
     
     // //Step 4: (optional) Check for operator and Second Number 
+    token = getNextToken(code,pos);
+    if (token.type == OPERATOR){
+        EvalResult right = evalExp(code,pos); // Recursively evaluate right hand expression
+        
+        // next
+        if(strcmp(result.type,"int")==0&& strcmp(right.type,"float")==0){
+            strcpy(result.type,"float"); //implicit conversion to float
+
+        }else if (strcmp(result.type,"float")==0 && strcmp(right.type,"int")==0)
+        {strcpy(result.type,"float");}
+        if (strcmp(token.value,"+") == 0) result.value += right.value;
+        if (strcmp(token.value,"-") == 0) result.value -= right.value;
+        if (strcmp(token.value,"*") == 0) result.value *= right.value;
+        if (strcmp(token.value,"/") == 0) 
+        {if (right.value != 0){result.value /= right.value;}
+        else{printf("Error : Division by ZERO");}}
+    }else{
+        (*pos)--;
+    }
+    return result;
+
     // token = getNextToken(code,pos);
     // if(token.type == OPERATOR){
     //     token = getNextToken(code,pos);
@@ -158,45 +212,45 @@ double evalExp(const char *code,int *pos){
         
     // }
 
-    while(1){
-        token = getNextToken(code,pos);
-        if(token.type != OPERATOR){
-            (*pos)--; // Step back if not an operator
-            break;
-        } 
-        char op = token.value[0];
-        token = getNextToken(code,pos);
-        if(token.type != NUMBER){
-            printf("Syntax Error : Expected a number after operator, but got '%s'\n",token.value);
-            return value;
-        }
+//     while(1){
+//         token = getNextToken(code,pos);
+//         if(token.type == OPERATOR){
+//             (*pos)--; // Step back if not an operator
+//             break;
+//         } 
+//         char op = token.value[0];
+//         token = getNextToken(code,pos);
+//         if(token.type != NUMBER){
+//             printf("Syntax Error : Expected a number after operator, but got '%s'\n",token.value);
+//             return value;
+//         }
 
-        double num = atof(token.value);
-        switch (op)
-        {
-        case '+':
-            value+=num;
-            break;
-        case '-':
-            value-=num;
-            break;
-        case '*':
-            value*=num;
-            break;
-            case '/':
-            if (num == 0){
-                printf("Error: Division by Zero\n");
-                return value;
-            }
-            value /= num;
-            break;
+//         double num = atof(token.value);
+//         switch (op)
+//         {
+//         case '+':
+//             value+=num;
+//             break;
+//         case '-':
+//             value-=num;
+//             break;
+//         case '*':
+//             value*=num;
+//             break;
+//             case '/':
+//             if (num == 0){
+//                 printf("Error: Division by Zero\n");
+//                 return value;
+//             }
+//             value /= num;
+//             break;
             
-        case '%':
-            value=(int)value % (int)num;//convert both numbers to integer before evaluating
-            break;
-        }
-    }
-return value;
+//         case '%':
+//             value=(int)value % (int)num;//convert both numbers to integer before evaluating
+//             break;
+//         }
+//     }
+// return value;
 }
 
 // function to verify correct arrangement or syntax 
@@ -238,13 +292,17 @@ int parseAssignment(const char *code,int *pos){
         // even when '=' is missing
     }
 
-    double value = evalExp(code,pos);
+    EvalResult result = evalExp(code,pos);
 
-    if (strcmp(varType, "int") == 0 && (value != (int)value)) {
+    // if (strcmp(varType, "int") == 0 && (value != (int)value)) {
+    //     printf("Type Error: Cannot assign non-integer value %lf to an 'int' variable '%s'\n", value, varName);
+    //     return 0;
+    // }
+    if (strcmp(varType, "int") == 0 && strcmp(result.type,"float") == 0) {
         printf("Type Error: Cannot assign non-integer value %lf to an 'int' variable '%s'\n", value, varName);
         return 0;
     }
-    
+
     // Step 5 : Expext `;` (PUNCTUATION)
     token = getNextToken(code,pos);
     if(token.type !=PUNCTUATION){
@@ -255,10 +313,10 @@ int parseAssignment(const char *code,int *pos){
 
     printf("Valid assignment Statement\n");
     strcpy(inventory[itemCount].name,varName);
-    inventory[itemCount].value = value; //Converts string to float
+    inventory[itemCount].value = result.value; //Converts string to float
     strcpy(inventory[itemCount].type,varType);
     itemCount++;// increment stored value count
-    printf("Stored: (%s) %s = %lf\n",varType,varName,value);
+    printf("Stored: (%s) %s = %lf\n",varType,varName,result.value);
     return 1;
 
 }
