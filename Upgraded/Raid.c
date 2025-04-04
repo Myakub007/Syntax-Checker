@@ -127,6 +127,14 @@ Asiner getNextToken(const char *code ,int *pos){
         (*pos)++;
         return token;
     }
+    if(code[*pos] == '(' || code[*pos] == ')') {
+        token.value[0] = code[*pos];
+        token.value[1] = '\0';
+        token.type = PUNCTUATION;
+        (*pos)++;
+        return token;
+    }
+    
     token.type = ERROR;
     token.value[0] = code[*pos];
     token.value[1] = '\0';
@@ -143,8 +151,20 @@ EvalResult evalExp(const char *code,int *pos){
     EvalResult result;
     // Step 3: Expect an Expression (number or number operator number)
     token = getNextToken(code,pos);
+    if (token.type == PUNCTUATION && strcmp(token.value, "(") == 0) {
+        result = evalExp(code, pos); // Evaluate inside parentheses
+    
+        token = getNextToken(code, pos);
+        if (token.type != PUNCTUATION || strcmp(token.value, ")") != 0) {
+            printf("Syntax Error: Expected ')' but got '%s'\n", token.value);
+            result.value = 0;
+            strcpy(result.type, "error");
+            return result;
+        }
+    }
+    
 
-    if (token.type == NUMBER){
+    else if (token.type == NUMBER){
         result.value == atof(token.value);
         strcpy(result.type,(strchr(token.value,'.')?"float":"int"));
     }else if (token.type == IDENTIFIER){
