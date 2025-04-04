@@ -39,6 +39,7 @@ typedef struct
 {
     char name[MAX_TOKEN_SIZE]; // variable name
     double value; //Variable value
+    char type[MAX_TOKEN_SIZE]; // datatype
 }Bag;
 
 Bag inventory[100]; // Store up to 100 variables
@@ -207,10 +208,13 @@ int parseAssignment(const char *code,int *pos){
     Asiner token;
 
     token = getNextToken(code,pos);
+    char varType[MAX_TOKEN_SIZE] = "unknown";//Default type
+
     int isDeclaring =0;
     if (token.type == KEYWORD){
         isDeclaring = 1;
-        token = getNextToken(code,pos);
+        strcpy(varType,token.value);//storing data type
+        token = getNextToken(code,pos);//next
     }
     //Step 1:  Expect IDENTIFIER (variable name)
     // changed &pos -> pos because pos is a pointer while
@@ -235,9 +239,13 @@ int parseAssignment(const char *code,int *pos){
     }
 
     double value = evalExp(code,pos);
-    // Step 5 : Expext `;` (PUNCTUATION)
 
+    if (strcmp(varType, "int") == 0 && (value != (int)value)) {
+        printf("Type Error: Cannot assign non-integer value %lf to an 'int' variable '%s'\n", value, varName);
+        return 0;
+    }
     
+    // Step 5 : Expext `;` (PUNCTUATION)
     token = getNextToken(code,pos);
     if(token.type !=PUNCTUATION){
         printf("Syntax Error: Expexted a ';' at end of the statement , but got '%s' \n",token.value);
@@ -248,8 +256,9 @@ int parseAssignment(const char *code,int *pos){
     printf("Valid assignment Statement\n");
     strcpy(inventory[itemCount].name,varName);
     inventory[itemCount].value = value; //Converts string to float
+    strcpy(inventory[itemCount].type,varType);
     itemCount++;// increment stored value count
-    printf("Stored: %s = %lf\n",varName,value);
+    printf("Stored: (%s) %s = %lf\n",varType,varName,value);
     return 1;
 
 }
@@ -311,8 +320,9 @@ void getUserCode(char *code){
 // print the variables currently stored in parser
 void printSymbolTable() {
     printf("\nSymbol Table:\n");
+    printf("| Type   | Name   | Value  |\n");
     for (int i = 0; i < itemCount; i++) {
-        printf("%s = %lf\n", inventory[i].name, inventory[i].value);
+        printf("| %-6s | %-8s | %-6lf |\n",inventory[i].type, inventory[i].name, inventory[i].value);
     }
 }
 
