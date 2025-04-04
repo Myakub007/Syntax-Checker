@@ -319,7 +319,7 @@ int parseAssignment(const char *code,int *pos){
     //     return 0;
     // }
     if (strcmp(varType, "int") == 0 && strcmp(result.type,"float") == 0) {
-        printf("Type Error: Cannot assign non-integer value %lf to an 'int' variable '%s'\n", value, varName);
+        printf("Type Error: Cannot assign non-integer value %lf to an 'int' variable '%s'\n", result, varName);
         return 0;
     }
 
